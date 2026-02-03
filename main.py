@@ -7,20 +7,22 @@ app = FastAPI()
 API_KEY = "mysecretkey"
 
 class HoneypotRequest(BaseModel):
-    message: Optional[str] = ""
-    conversation_id: Optional[str] = "default"
+    message: Optional[str] = None
+    conversation_id: Optional[str] = None
 
 @app.post("/honeypot")
 def honeypot(
-    request: HoneypotRequest = HoneypotRequest(),
+    request: Optional[HoneypotRequest] = None,
     x_api_key: str = Header(..., alias="x-api-key")
 ):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
-    scam_keywords = ["won", "prize", "lottery", "urgent", "upi", "account", "click"]
+    message = request.message if request and request.message else ""
+    conversation_id = request.conversation_id if request and request.conversation_id else "default"
 
-    is_scam = any(word in request.message.lower() for word in scam_keywords)
+    scam_keywords = ["won", "prize", "lottery", "urgent", "upi", "account", "click"]
+    is_scam = any(word in message.lower() for word in scam_keywords)
 
     agent_reply = (
         "Okay, I am interested. Please explain the next step."
@@ -36,5 +38,7 @@ def honeypot(
             "bank_account": "unknown",
             "phishing_url": "unknown"
         },
-        "status": "success"
+        "status": "success",
+        "conversation_id": conversation_id
     }
+
