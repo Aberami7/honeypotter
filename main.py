@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Body
 from typing import Optional
 
 app = FastAPI()
@@ -7,9 +7,9 @@ API_KEY = "mysecretkey"
 
 @app.post("/honeypot")
 def honeypot(
-    message: str,
-    conversation_id: Optional[str] = "default",
-    x_api_key: str = Header(None)
+    message: str = Body(...),
+    conversation_id: Optional[str] = Body("default"),
+    x_api_key: str = Header(..., alias="x-api-key")
 ):
     # API key check
     if x_api_key != API_KEY:
@@ -19,10 +19,11 @@ def honeypot(
     scam_keywords = ["won", "prize", "lottery", "urgent", "upi", "account", "click"]
     is_scam = any(word in message.lower() for word in scam_keywords)
 
-    if is_scam:
-        agent_reply = "Okay, I am interested. Please explain the next step."
-    else:
-        agent_reply = "Thanks for the information."
+    agent_reply = (
+        "Okay, I am interested. Please explain the next step."
+        if is_scam
+        else "Thanks for the information."
+    )
 
     return {
         "is_scam": is_scam,
@@ -32,5 +33,7 @@ def honeypot(
             "bank_account": "unknown",
             "phishing_url": "unknown"
         },
-        "status": "success"
+        "status": "success",
+        "conversation_id": conversation_id
     }
+
