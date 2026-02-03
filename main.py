@@ -4,12 +4,15 @@ from typing import Optional
 
 app = FastAPI()
 
+# API Key
 API_KEY = "mysecretkey"
 
+# Request model
 class HoneypotRequest(BaseModel):
     message: Optional[str] = None
     conversation_id: Optional[str] = None
 
+# POST endpoint - main honeypot logic
 @app.post("/honeypot")
 def honeypot(
     request: Optional[HoneypotRequest] = None,
@@ -34,6 +37,7 @@ def honeypot(
         else "Thanks for the information."
     )
 
+    # Return response
     return {
         "is_scam": is_scam,
         "agent_reply": agent_reply,
@@ -46,4 +50,9 @@ def honeypot(
         "conversation_id": conversation_id
     }
 
-
+# Optional GET endpoint to avoid 405 in browser
+@app.get("/honeypot")
+def honeypot_info():
+    return {
+        "message": "This endpoint only accepts POST requests with JSON body and x-api-key header."
+    }
