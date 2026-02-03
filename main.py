@@ -15,15 +15,19 @@ def honeypot(
     request: Optional[HoneypotRequest] = None,
     x_api_key: str = Header(..., alias="x-api-key")
 ):
+    # API key check
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
+    # Safe defaults
     message = request.message if request and request.message else ""
     conversation_id = request.conversation_id if request and request.conversation_id else "default"
 
+    # Scam detection
     scam_keywords = ["won", "prize", "lottery", "urgent", "upi", "account", "click"]
     is_scam = any(word in message.lower() for word in scam_keywords)
 
+    # Agent reply
     agent_reply = (
         "Okay, I am interested. Please explain the next step."
         if is_scam
@@ -41,4 +45,5 @@ def honeypot(
         "status": "success",
         "conversation_id": conversation_id
     }
+
 
