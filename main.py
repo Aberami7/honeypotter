@@ -1,25 +1,28 @@
 from fastapi import FastAPI, Header, HTTPException, Request
 
 app = FastAPI()
-
 API_KEY = "mysecretkey"
 
-@app.api_route("/honeypot", methods=["POST", "GET"])
-async def honeypot(request: Request, x_api_key: str = Header(None)):
-    if x_api_key != API_KEY:
+@app.get("/")
+def root():
+    return {"status": "Honeypot API is live"}
+
+@app.post("/honeypot")
+async def honeypot(
+    request: Request,
+    x_api_key: str = Header(..., alias="x-api-key")
+):
+    if x_api_key.strip() != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
-    scam_message = ""
     try:
         body = await request.json()
-        scam_message = body.get("message", "")
+        message = body.get("message", "")
     except:
-        scam_message = ""
+        message = ""
 
-    is_scam = any(
-        word in scam_message.lower()
-        for word in ["urgent", "otp", "account", "upi", "blocked", "verify"]
-    )
+    is_scam = any(word in message.lower() for word in
+                  ["urgent", "otp", "account", "upi", "verify", "blocked"])
 
     return {
         "status": "success",
@@ -27,5 +30,3 @@ async def honeypot(request: Request, x_api_key: str = Header(None)):
         "is_scam": is_scam,
         "agent_reply": "Honeypot triggered"
     }
-
-
