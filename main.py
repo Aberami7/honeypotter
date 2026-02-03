@@ -1,43 +1,40 @@
-from fastapi import FastAPI, Header, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+from fastapi import FastAPI, Header, HTTPException, Request
 
 app = FastAPI()
 
-# API Key
 API_KEY = "mysecretkey"
 
-# Request model
-class HoneypotRequest(BaseModel):
-    message: Optional[str] = None
-    conversation_id: Optional[str] = None
-
-# POST endpoint - main honeypot logic
 @app.post("/honeypot")
-def honeypot(
-    request: Optional[HoneypotRequest] = None,
-    x_api_key: str = Header(..., alias="x-api-key")
+async def honeypot(
+    request: Request,
+    x_api_key: str | None = Header(None, alias="x-api-key")
 ):
-    # API key check
-    if x_api_key != API_KEY:
+    # Manual API key check (prevents 422)
+    if not x_api_key or x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
-    # Safe defaults
-    message = request.message if request and request.message else ""
-    conversation_id = request.conversation_id if request and request.conversation_id else "default"
+    # Safe body parsing
+    try:
+        body = await request.json()
+    except:
+        body = {}
 
-    # Scam detection
+    message = ""
+    conversation_id = "default"
+
+    if isinstance(body, dict):
+        message = body.get("message", "")
+        conversation_id = body.get("conversation_id", "default")
+
     scam_keywords = ["won", "prize", "lottery", "urgent", "upi", "account", "click"]
     is_scam = any(word in message.lower() for word in scam_keywords)
 
-    # Agent reply
     agent_reply = (
         "Okay, I am interested. Please explain the next step."
         if is_scam
         else "Thanks for the information."
     )
 
-    # Return response
     return {
         "is_scam": is_scam,
         "agent_reply": agent_reply,
@@ -50,9 +47,9 @@ def honeypot(
         "conversation_id": conversation_id
     }
 
-# Optional GET endpoint to avoid 405 in browser
+
 @app.get("/honeypot")
 def honeypot_info():
     return {
-        "message": "This endpoint only accepts POST requests with JSON body and x-api-key header."
+        "message": "POST endpoint. Send x-api-key header and optional JSON body."
     }
