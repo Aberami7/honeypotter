@@ -1,32 +1,21 @@
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Body
+from typing import Optional, Dict
 
 app = FastAPI()
-API_KEY = "mysecretkey"
 
-@app.get("/")
-def root():
-    return {"status": "Honeypot API is live"}
+API_KEY = "mysecretkey"
 
 @app.post("/honeypot")
 async def honeypot(
-    request: Request,
-    x_api_key: str = Header(..., alias="x-api-key")
+    payload: Optional[Dict] = Body(default=None),
+    x_api_key: str = Header(None)
 ):
-    if x_api_key.strip() != API_KEY:
+    if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
-
-    try:
-        body = await request.json()
-        message = body.get("message", "")
-    except:
-        message = ""
-
-    is_scam = any(word in message.lower() for word in
-                  ["urgent", "otp", "account", "upi", "verify", "blocked"])
 
     return {
         "status": "success",
         "honeypot": "triggered",
-        "is_scam": is_scam,
+        "is_scam": False,
         "agent_reply": "Honeypot triggered"
     }
