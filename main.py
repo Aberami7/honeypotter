@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Header, HTTPException, Body
+from fastapi import FastAPI, Header, Body
+from fastapi.responses import JSONResponse
 from typing import Optional
 
 app = FastAPI()
@@ -11,11 +12,20 @@ async def honeypot(
     x_api_key: str = Header(...)
 ):
     if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API Key")
+        return JSONResponse(
+            status_code=401,
+            content={
+                "status": "error",
+                "reply": None,
+                "error": {
+                    "message": "Invalid API Key",
+                    "type": "AuthenticationError"
+                }
+            }
+        )
 
     return {
         "status": "success",
-        "honeypot": "triggered",
-        "is_scam": False,
-        "agent_reply": "Honeypot triggered"
+        "reply": "Honeypot triggered",
+        "error": None
     }
